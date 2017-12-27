@@ -47,6 +47,7 @@ var poolFactory pool.Factory = func(maxSize int) (pool.WorkerPool, error) {
 }
 
 pool, doneUsing, err := s.ClientBundleManager.GetPoolWithFactory("pool 1", sendSize, bundleFactory)
+fmt.Println(pool.(*myPooledData).myData)
 // Any error returned in the Factory function will bubble up here
 if err != nil {
   // Handle
