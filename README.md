@@ -1,4 +1,7 @@
-# worker-pools
+worker-pools
+==========
+[![Go Report Card](https://goreportcard.com/badge/github.com/Appboy/worker-pools)](https://goreportcard.com/report/github.com/Appboy/worker-pools)
+
 Go package for managing a set of lazily constructed, self-expiring, concurrency-limited worker pools.  
 
 ```
