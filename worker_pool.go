@@ -103,7 +103,7 @@ func (p *BaseWorkerPool) release() {
 }
 
 func (p *BaseWorkerPool) age() time.Duration {
-	return time.Now().Sub(p.creationTime)
+	return time.Since(p.creationTime)
 }
 
 // Dispose the pool, closing down the workers and releasing any shared resources.

@@ -21,7 +21,9 @@ type WorkerPoolManager struct {
 // * poolSize - The max number of workers for each key
 // * stalePoolExpiration - how long to cache unused pools for
 // * maxPoolLifetime - max time to allow pools to live
-func NewWorkerPoolManager(poolSize int, stalePoolExpiration time.Duration, maxPoolLifetime time.Duration) *WorkerPoolManager {
+func NewWorkerPoolManager(
+	poolSize int, stalePoolExpiration time.Duration, maxPoolLifetime time.Duration,
+) *WorkerPoolManager {
 	workerPoolCache := ttlcache.NewCache()
 	workerPoolCache.SetTTL(stalePoolExpiration)
 	workerPoolCache.SetExpirationCallback(func(key string, cachedPool interface{}) {
@@ -51,7 +53,9 @@ func (m *WorkerPoolManager) GetPool(key string, sendSize int) (WorkerPool, chan<
 // GetPoolWithFactory returns the WorkerPool for this key, allowing you to specify a custom pool.Factory
 // if you want to build a custom WorkerPool implementation which embeds a BaseWorkerPool and attaches
 // supplimentary shared data for the pool.
-func (m *WorkerPoolManager) GetPoolWithFactory(key string, sendSize int, factory Factory) (WorkerPool, chan<- bool, error) {
+func (m *WorkerPoolManager) GetPoolWithFactory(
+	key string, sendSize int, factory Factory,
+) (WorkerPool, chan<- bool, error) {
 	var pool WorkerPool
 	var err error
 
