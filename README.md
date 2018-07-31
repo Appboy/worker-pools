@@ -4,7 +4,7 @@ worker-pools
 
 Go package for managing a set of lazily constructed, self-expiring, concurrency-limited worker pools.  
 
-```
+```go
 maxConcurrentWorkloads := 500
 stalePoolExpiration := 10*time.Minute
 maxPoolLifetime := 4*time.Hour
@@ -24,7 +24,7 @@ Each pool instance is constructed when it is required and cached for `stalePoolE
 
 If you want to attach shared data or behavior to each pool instance:
 
-```
+```go
 type myPooledData struct {
 	pool.WorkerPool
 
