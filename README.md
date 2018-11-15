@@ -12,7 +12,7 @@ poolManager := pool.NewWorkerPoolManager(
   maxConcurrentWorkloads, stalePoolExpiration, maxPoolLifetime,
 )
 
-pool, doneUsing := poolManager.Get("pool 1")
+pool, doneUsing := poolManager.GetPool("pool 1")
 pool.Submit(func() {
   // Do anything here. Only maxConcurrentWorkloads will be allowed to execute concurrently per pool.
   // This is useful for limiting concurrent usage of external resources.
