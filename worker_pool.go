@@ -63,9 +63,9 @@ func (p *BaseWorkerPool) Submit(w Work) {
 // It's not thread-safe, lock above this
 func (p *BaseWorkerPool) spawnWorkers(sendSize int) {
 	// Spawn as many new workers as there are messages in this send, up until workerPoolMaxSize total
-	// spawned workers. This way, when there are clients that are only ever triggering a single push at a time,
-	// we only ever spawn a single worker, but when there are clients sending a blast to their entire userbase at
-	// once, we'll spawn workerPoolMaxSize workers.
+	// spawned workers. This way, when there are clients that are only ever doing a single unit of work at a time,
+	// we only ever spawn a single worker, but when there are clients doing large blasts of work concurrently, we'll
+	// spawn workerPoolMaxSize workers.
 	newWorkers := min(sendSize, p.maxSize-p.workerCount)
 	if newWorkers > 0 {
 		p.workerCount += newWorkers
