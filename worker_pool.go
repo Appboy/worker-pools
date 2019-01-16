@@ -39,7 +39,7 @@ type BaseWorkerPool struct {
 // NewWorkerPool builds a new BaseWorkerPool and return it as a WorkerPool. This is the default pool factory.
 func NewWorkerPool(maxSize int) (WorkerPool, error) {
 	return &BaseWorkerPool{
-		sends:        make(chan Work, 100),
+		sends:        make(chan Work, maxSize),
 		maxSize:      maxSize,
 		deletionLock: &sync.RWMutex{},
 		disposed:     make(chan bool),
@@ -56,6 +56,9 @@ func min(x int, y int) int {
 }
 
 // Submit an item of Work to be executed.
+//
+// When all workers are busy, and an additional workerPoolMaxSize of pending work beyond that is also already enqueued,
+// this method will block until workers become available.
 func (p *BaseWorkerPool) Submit(w Work) {
 	p.sends <- w
 }
