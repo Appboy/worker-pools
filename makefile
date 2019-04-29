@@ -4,13 +4,12 @@ TEST_OPTIONS?=-race -cover
 
 .PHONY: setup
 setup: ## Install all the build and lint dependencies
-	go get -u gopkg.in/alecthomas/gometalinter.v2
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 	go get -u github.com/golang/dep/cmd/dep
 	go get -u golang.org/x/tools/cmd/cover
 	go get -u golang.org/x/tools/cmd/goimports
 	go get -u github.com/AlekSi/gocoverutil
 	dep ensure
-	gometalinter.v2 --install --update
 
 .PHONY: test
 test: ## Run all the tests
@@ -27,13 +26,7 @@ fmt: ## gofmt and goimports all go files
 
 .PHONY: lint
 lint: ## Run all the linters
-	## global lint tests
-	gometalinter.v2 --vendor --enable-all --line-length=120 \
-		--disable=golint \
-		--disable=errcheck \
-		--cyclo-over=15 \
-		--deadline=10m \
-		./...
+	golangci-lint run --deadline=15m
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
