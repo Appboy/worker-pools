@@ -2,42 +2,44 @@
 
 
 [[projects]]
-  digest = "1:667f41be124637d8af08d9163be07cc718ae291bc590b6a91047c94b25ef0753"
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   pruneopts = "UT"
-  revision = "6d212800a42e8ab5c146b8ace3490ee17e5225f9"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
-  digest = "1:2d641073d2edd47f54d6951d31b16e4ec6d37ec7efac1320f8d1d820c83fcbb8"
+  digest = "1:50be6bdd86a858d5817057d3559fc4a634999c6a1abc78478344db9e957c60b0"
   name = "github.com/diegobernardes/ttlcache"
   packages = ["."]
   pruneopts = "UT"
-  revision = "86f5295f63277ee497ff52f7480e09abd313d12e"
-  version = "1.4.0"
+  revision = "823b876cf6d187eefec1635650de1877e39e8cc6"
+  version = "1.5.0"
 
 [[projects]]
-  digest = "1:7e20e81aa450d3aaeabde0582330f26654204c6031d7eb37f4dbda821f113de7"
+  digest = "1:547f5df5f708c880f0af507317c8d022b8d62053a5cb075e23c6eeed09eb2e4e"
   name = "github.com/fortytw2/leaktest"
   packages = ["."]
   pruneopts = "UT"
-  revision = "7dad53304f9614c1c365755c1176a8e876fee3e8"
-  version = "v1.1.0"
+  revision = "9a23578d06a26ec1b47bfc8965bf5e7011df8bd6"
+  version = "v1.3.0"
 
 [[projects]]
-  digest = "1:08413c4235cad94a96c39e1e2f697789733c4a87d1fdf06b412d2cf2ba49826a"
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
   pruneopts = "UT"
-  revision = "d8ed2627bdf02c080bf22230dbb337003b7aba2d"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
 
 [[projects]]
-  digest = "1:25f2747b063c0a656195ef85413cef8c9f2bbe128deab7d39563a6ca1e536070"
+  digest = "1:972c2427413d41a1e06ca4897e8528e5a1622894050e2f527b38ddf0f343f759"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
   pruneopts = "UT"
-  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
-  version = "v1.1.4"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
 
 [solve-meta]
   analyzer-name = "dep"
