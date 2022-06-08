@@ -1,15 +1,16 @@
 package pool
 
 import (
+	"context"
 	"sync"
 	"time"
 
-	"github.com/diegobernardes/ttlcache"
+	"github.com/jellydator/ttlcache/v3"
 )
 
 // WorkerPoolManager - Self-expiring, lazily constructed map of fixed-size worker pools safe for concurrent use
 type WorkerPoolManager struct {
-	workerPoolCache     *ttlcache.Cache
+	workerPoolCache     *ttlcache.Cache[string, WorkerPool]
 	workerPoolMaxSize   int
 	poolReservationLock *sync.Mutex
 	stalePoolExpiration time.Duration
@@ -24,11 +25,13 @@ type WorkerPoolManager struct {
 func NewWorkerPoolManager(
 	poolSize int, stalePoolExpiration time.Duration, maxPoolLifetime time.Duration,
 ) *WorkerPoolManager {
-	workerPoolCache := ttlcache.NewCache()
-	workerPoolCache.SetTTL(stalePoolExpiration)
-	workerPoolCache.SetExpirationCallback(func(key string, cachedPool interface{}) {
-		cachedPool.(WorkerPool).Dispose()
+	workerPoolCache := ttlcache.New(
+		ttlcache.WithTTL[string, WorkerPool](stalePoolExpiration),
+	)
+	workerPoolCache.OnEviction(func(context context.Context, reason ttlcache.EvictionReason, item *ttlcache.Item[string, WorkerPool]) {
+		item.Value().Dispose()
 	})
+	go workerPoolCache.Start()
 
 	return &WorkerPoolManager{
 		workerPoolCache:     workerPoolCache,
@@ -61,16 +64,16 @@ func (m *WorkerPoolManager) GetPoolWithFactory(
 
 	m.poolReservationLock.Lock()
 
-	cachedPool, exists := m.workerPoolCache.Get(key)
-	if exists {
-		pool = cachedPool.(WorkerPool)
+	cachedPoolItem := m.workerPoolCache.Get(key)
+	if cachedPoolItem != nil {
+		pool = cachedPoolItem.Value()
 	} else {
 		pool, err = factory(m.workerPoolMaxSize)
 		if err != nil {
 			m.poolReservationLock.Unlock()
 			return nil, nil, err
 		}
-		m.workerPoolCache.SetWithTTL(key, pool, m.stalePoolExpiration)
+		m.workerPoolCache.Set(key, pool, ttlcache.DefaultTTL)
 	}
 
 	// Prevent this from being deleted until we're done using it - if reserve returns false, it was
@@ -87,7 +90,7 @@ func (m *WorkerPoolManager) GetPoolWithFactory(
 	// If the item is older than maxClientBundleExpiration, remove it from the cache and schedule it for disposal.
 	// Disposal won't actually occur until the caller has released it
 	if pool.age() > m.maxPoolLifetime {
-		m.workerPoolCache.Remove(key)
+		m.workerPoolCache.Delete(key)
 		go pool.Dispose()
 	}
 
