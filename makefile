@@ -16,6 +16,8 @@ setup: ## Install all the build and lint dependencies
 	go get -u golang.org/x/tools/cmd/cover
 	go get -u golang.org/x/tools/cmd/goimports
 	go get -u github.com/AlekSi/gocoverutil
+	GOPRIVATE=$(GOPRIVATE) go mod tidy
+	GOPRIVATE=$(GOPRIVATE) go mod download
 
 .PHONY: test
 test: ## Run all the tests
@@ -42,11 +44,6 @@ ci: test lint ## Run all the tests and code checks
 .PHONY: install
 install: ## Install to $GOPATH/src
 	go install ./...
-
-.PHONY: package
-package: ## Package the executable to PACKAGE_DIR
-	go clean
-	CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -a -x -installsuffix cgo -o $(PACKAGE_DIR)
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
