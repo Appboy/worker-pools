@@ -2,10 +2,13 @@ package pool
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/jellydator/ttlcache/v3"
 
 	"github.com/fortytw2/leaktest"
 	"github.com/stretchr/testify/assert"
@@ -34,31 +37,33 @@ func TestGetPoolCannotCreateLargerPoolsThanExpected(t *testing.T) {
 
 	wg.Wait()
 
-	bundle, _ := pm.workerPoolCache.Get("key")
-	assert.Equal(t, poolSize, bundle.(*BaseWorkerPool).workerCount)
-	bundle.(WorkerPool).Dispose()
+	bundle := pm.workerPoolCache.Get("key")
+	assert.Equal(t, poolSize, bundle.Value().(*BaseWorkerPool).workerCount)
+	bundle.Value().Dispose()
 }
 
 func TestManagerStoresWorkerPoolInCache(t *testing.T) {
 	pm := NewWorkerPoolManager(100, 1*time.Second, 5*time.Second)
 	redHerring, _ := NewWorkerPool(1)
-	pm.workerPoolCache.Set("red herring key", redHerring)
+	pm.workerPoolCache.Set("red herring key", redHerring, ttlcache.DefaultTTL)
 
 	pool, doneUsing := pm.GetPool("key", 0)
 	assert.NotNil(t, pool)
 	close(doneUsing)
 
-	cachedObject, cacheExists := pm.workerPoolCache.Get("key")
-	cachedPool, success := cachedObject.(WorkerPool)
-	if !success {
+	cachedItem := pm.workerPoolCache.Get("key")
+
+	if cachedItem == nil {
 		t.Error("Expected GetPool to store the WorkerPool in the cache")
 	}
+
+	cachedPool := cachedItem.Value()
 
 	if reflect.DeepEqual(cachedPool, redHerring) {
 		t.Error("Got back the red herring!")
 	}
 
-	if !reflect.DeepEqual(cachedPool, pool) || !cacheExists {
+	if !reflect.DeepEqual(cachedPool, pool) || cachedItem == nil {
 		t.Errorf("Expected GetPool to store the pool in the cache, wanted %+v, got %+v", pool, cachedPool)
 	}
 }
@@ -66,9 +71,9 @@ func TestManagerStoresWorkerPoolInCache(t *testing.T) {
 func TestManagerUsesStoredWorkerPoolFromCache(t *testing.T) {
 	pm := NewWorkerPoolManager(100, 1*time.Second, 5*time.Second)
 	redHerring, _ := NewWorkerPool(1)
-	pm.workerPoolCache.Set("red herring key", redHerring)
+	pm.workerPoolCache.Set("red herring key", redHerring, ttlcache.DefaultTTL)
 	actualPool, _ := NewWorkerPool(1)
-	pm.workerPoolCache.Set("key", actualPool)
+	pm.workerPoolCache.Set("key", actualPool, ttlcache.DefaultTTL)
 
 	pool, doneUsing := pm.GetPool("key", 0)
 	assert.NotNil(t, pool)
@@ -105,31 +110,31 @@ func TestWorkerPoolExpiry(t *testing.T) {
 
 	// Wait around just long enough to ensure that the pool to got made and cached
 	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, 1, pm.workerPoolCache.Count())
+	assert.Equal(t, 1, pm.workerPoolCache.Len())
 
 	time.Sleep(staleClientBundleExpiration)
-	assert.Equal(t, 0, pm.workerPoolCache.Count())
+	assert.Equal(t, 0, pm.workerPoolCache.Len())
 
 	wg.Add(1)
 	go doWork()
 	// Wait around just long enough to ensure that the pool to got made and cached
 	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, 1, pm.workerPoolCache.Count())
+	assert.Equal(t, 1, pm.workerPoolCache.Len())
 	wg.Add(1)
 	go doWork()
 	time.Sleep(staleClientBundleExpiration / 2)
-	assert.Equal(t, 1, pm.workerPoolCache.Count())
+	assert.Equal(t, 1, pm.workerPoolCache.Len())
 	wg.Add(1)
 	go doWork()
 	time.Sleep(staleClientBundleExpiration / 2)
-	assert.Equal(t, 1, pm.workerPoolCache.Count())
+	assert.Equal(t, 1, pm.workerPoolCache.Len())
 	wg.Add(1)
 	go doWork()
 	time.Sleep(staleClientBundleExpiration / 2)
-	assert.Equal(t, 1, pm.workerPoolCache.Count())
+	assert.Equal(t, 1, pm.workerPoolCache.Len())
 
 	time.Sleep(staleClientBundleExpiration)
-	assert.Equal(t, 0, pm.workerPoolCache.Count())
+	assert.Equal(t, 0, pm.workerPoolCache.Len())
 
 	wg.Wait()
 
@@ -164,17 +169,20 @@ func TestWorkerPoolMaxExpiry(t *testing.T) {
 	go doWork(1)
 	// Wait around just long enough to ensure that the pool to got made and cached
 	time.Sleep(10 * time.Millisecond)
-	bundle, exists := pm.workerPoolCache.Get("key")
-	assert.True(t, exists)
-	for i := 0; i < 10; i++ {
+	item := pm.workerPoolCache.Get("key")
+	assert.NotNil(t, item)
+	bundle := item.Value()
+	for i := 0; i < 6; i++ {
 		doWorkWaitGroup.Add(1)
 		go doWork(i + 1)
 		time.Sleep(staleClientBundleExpiration / 2)
 	}
 	doWorkWaitGroup.Wait()
 
-	newBundle, _ := pm.workerPoolCache.Get("key")
+	newItem := pm.workerPoolCache.Get("key")
+	newBundle := newItem.Value()
 	assert.NotEqual(t, bundle, newBundle)
+	time.Sleep(staleClientBundleExpiration)
 }
 
 type MockWorkerPool struct {
@@ -231,7 +239,7 @@ func TestInterleavedUseAndExpiryDoesNotLeak(t *testing.T) {
 		testWg.Add(1)
 		go func(i int) {
 			var poolWg sync.WaitGroup
-			pool, doneUsing := pm.GetPool(string(i%3), 1)
+			pool, doneUsing := pm.GetPool(fmt.Sprint(i%3), 1)
 			poolWg.Add(1)
 			pool.Submit(func() {
 				poolWg.Done()
@@ -244,5 +252,5 @@ func TestInterleavedUseAndExpiryDoesNotLeak(t *testing.T) {
 	testWg.Wait()
 
 	time.Sleep(staleClientBundleExpiration + 5*time.Millisecond)
-	assert.Equal(t, 0, pm.workerPoolCache.Count())
+	assert.Equal(t, 0, pm.workerPoolCache.Len())
 }
