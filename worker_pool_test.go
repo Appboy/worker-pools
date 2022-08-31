@@ -3,8 +3,8 @@ package pool
 import (
 	"testing"
 
-	"github.com/fortytw2/leaktest"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 )
 
 func TestSpawnWorkersCannotCreateLargerPoolsThanExpected(t *testing.T) {
@@ -21,7 +21,7 @@ func TestSpawnWorkersCannotCreateLargerPoolsThanExpected(t *testing.T) {
 }
 
 func TestDisposeClosesWorkerPool(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer goleak.VerifyNone(t)
 	p, _ := NewWorkerPool(1050)
 
 	for i := 0; i < 10; i++ {

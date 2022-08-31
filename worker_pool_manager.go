@@ -103,3 +103,9 @@ func (m *WorkerPoolManager) GetPoolWithFactory(
 	m.poolReservationLock.Unlock()
 	return pool, doneUsing, nil
 }
+
+// Dispose clears the underlying cache and stops launched goroutines
+func (m *WorkerPoolManager) Dispose() {
+	m.workerPoolCache.DeleteAll()
+	m.workerPoolCache.Stop()
+}
