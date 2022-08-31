@@ -10,8 +10,9 @@ import (
 
 	"github.com/jellydator/ttlcache/v3"
 
-	"github.com/fortytw2/leaktest"
 	"github.com/stretchr/testify/assert"
+
+	"go.uber.org/goleak"
 )
 
 func TestGetPoolCannotCreateLargerPoolsThanExpected(t *testing.T) {
@@ -20,7 +21,7 @@ func TestGetPoolCannotCreateLargerPoolsThanExpected(t *testing.T) {
 	_, doneUsing := pm.GetPool("key", 0)
 	close(doneUsing)
 
-	defer leaktest.Check(t)()
+	defer goleak.VerifyNone(t)
 
 	var wg sync.WaitGroup
 
@@ -39,7 +40,7 @@ func TestGetPoolCannotCreateLargerPoolsThanExpected(t *testing.T) {
 
 	bundle := pm.workerPoolCache.Get("key")
 	assert.Equal(t, poolSize, bundle.Value().(*BaseWorkerPool).workerCount)
-	bundle.Value().Dispose()
+	pm.Dispose()
 }
 
 func TestManagerStoresWorkerPoolInCache(t *testing.T) {
@@ -66,6 +67,7 @@ func TestManagerStoresWorkerPoolInCache(t *testing.T) {
 	if !reflect.DeepEqual(cachedPool, pool) || cachedItem == nil {
 		t.Errorf("Expected GetPool to store the pool in the cache, wanted %+v, got %+v", pool, cachedPool)
 	}
+	pm.Dispose()
 }
 
 func TestManagerUsesStoredWorkerPoolFromCache(t *testing.T) {
@@ -86,6 +88,7 @@ func TestManagerUsesStoredWorkerPoolFromCache(t *testing.T) {
 		t.Errorf("Expected GetPool to return the pool from the cache, wanted %+v, got %+v", actualPool, pool)
 	}
 	close(doneUsing)
+	pm.Dispose()
 }
 
 func TestWorkerPoolExpiry(t *testing.T) {
@@ -93,7 +96,7 @@ func TestWorkerPoolExpiry(t *testing.T) {
 	maxClientBundleExpiration := 6 * time.Hour
 	pm := NewWorkerPoolManager(100, staleClientBundleExpiration, maxClientBundleExpiration)
 
-	defer leaktest.Check(t)()
+	defer goleak.VerifyNone(t)
 
 	var wg sync.WaitGroup
 
@@ -138,8 +141,7 @@ func TestWorkerPoolExpiry(t *testing.T) {
 
 	wg.Wait()
 
-	// Just to make sure dispose has had time to run before leaktest checks
-	time.Sleep(staleClientBundleExpiration)
+	pm.Dispose()
 }
 
 func TestWorkerPoolMaxExpiry(t *testing.T) {
@@ -147,7 +149,7 @@ func TestWorkerPoolMaxExpiry(t *testing.T) {
 	maxClientBundleExpiration := 100 * time.Millisecond
 	pm := NewWorkerPoolManager(20, staleClientBundleExpiration, maxClientBundleExpiration)
 
-	defer leaktest.Check(t)()
+	defer goleak.VerifyNone(t)
 
 	var doWorkWaitGroup sync.WaitGroup
 
@@ -182,7 +184,8 @@ func TestWorkerPoolMaxExpiry(t *testing.T) {
 	newItem := pm.workerPoolCache.Get("key")
 	newBundle := newItem.Value()
 	assert.NotEqual(t, bundle, newBundle)
-	time.Sleep(staleClientBundleExpiration)
+
+	pm.Dispose()
 }
 
 type MockWorkerPool struct {
@@ -206,6 +209,8 @@ func TestManagerCanUseWorkerPoolFromCustomFactory(t *testing.T) {
 	assert.NotNil(t, doneUsing)
 	assert.Equal(t, value, pool.(*MockWorkerPool).value)
 	close(doneUsing)
+
+	pm.Dispose()
 }
 
 func TestManagerReturnsErrorFromCustomFactory(t *testing.T) {
@@ -219,6 +224,8 @@ func TestManagerReturnsErrorFromCustomFactory(t *testing.T) {
 	assert.Equal(t, errorMessage, err.Error())
 	assert.Nil(t, doneUsing)
 	assert.Nil(t, pool)
+
+	pm.Dispose()
 }
 
 func TestInterleavedUseAndExpiryDoesNotLeak(t *testing.T) {
@@ -229,7 +236,7 @@ func TestInterleavedUseAndExpiryDoesNotLeak(t *testing.T) {
 
 	var testWg sync.WaitGroup
 
-	defer leaktest.Check(t)()
+	defer goleak.VerifyNone(t)
 
 	// make n large enough that with the sleep, we pass a maxClientBundleExpiration
 	n := 35
@@ -253,4 +260,6 @@ func TestInterleavedUseAndExpiryDoesNotLeak(t *testing.T) {
 
 	time.Sleep(staleClientBundleExpiration + 5*time.Millisecond)
 	assert.Equal(t, 0, pm.workerPoolCache.Len())
+
+	pm.Dispose()
 }
